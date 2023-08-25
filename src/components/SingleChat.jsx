@@ -9,21 +9,23 @@ import instance from '../api'
 import './style.css'
 import ScrollableChat from './ScrollableChat'
 import { io } from 'socket.io-client'
+var socket, selectedChatCompare;
+
 
 const SingleChat = ({ fetchAgain, setFetchAgain }) => {
-  const { user, selectedChat, setSelectedChat } = ChatState()
-  const toast = useToast()
-  var socket, selectedChatCompare
-
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [socketConnected, setSocketConnected] = useState(false);
   const [typing, setTyping] = useState(false);
   const [istyping, setIsTyping] = useState(false);
+  const toast = useToast();
 
   const ENDPOINT = "http://127.0.0.1:8080/";
-  socket = io(ENDPOINT)
+  // socket = io(ENDPOINT)
+
+
+  const { selectedChat, setSelectedChat, user } = ChatState();
 
 
 
@@ -78,7 +80,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
           },
           config
         );
-        // setMessages([...messages, data]);
+        setMessages([...messages, data]);
         socket.emit("new message", data);
 
       } catch (error) {
@@ -120,8 +122,8 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
 
 
   useEffect(() => {
-    // socket = io(ENDPOINT);
-    socket.emit("setup", user);
+    socket = io(ENDPOINT);
+    socket.emit("setup", user.user);
     socket.on("connected", () => setSocketConnected(true));
     // socket.on("typing", () => setIsTyping(true));
     // socket.on("stop typing", () => setIsTyping(false));
@@ -135,30 +137,21 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
     selectedChatCompare = selectedChat;
     // eslint-disable-next-line
   }, [selectedChat]);
-  useEffect(()=>{
-    fetchMessages()
-  },[])
+
 
   useEffect(() => {
-    
-
     socket.on("message recieved", (newMessageRecieved) => {
-      console.log(newMessageRecieved)
-
-      if (
-        !selectedChatCompare || // if chat is not selected or doesn't match current chat
-        selectedChatCompare._id !== newMessageRecieved.chat._id
-      ) {
-        // if (!notification.includes(newMessageRecieved)) {
-        //   setNotification([newMessageRecieved, ...notification]);
-        //   setFetchAgain(!fetchAgain);
-        // }
-      } else {
-        // console.log(1)
-        // console.log(messages) 
-
-        console.log(setMessages([...messages,newMessageRecieved]))
-      }
+        if (
+          !selectedChatCompare || // if chat is not selected or doesn't match current chat
+          selectedChatCompare._id !== newMessageRecieved.chat._id
+        ) {
+          // if (!notification.includes(newMessageRecieved)) {
+          //   setNotification([newMessageRecieved, ...notification]);
+          //   setFetchAgain(!fetchAgain);
+          // }
+        } else {
+          setMessages([...messages, newMessageRecieved])
+        }
     });
   });
 
