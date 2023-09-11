@@ -9,6 +9,9 @@ import instance from '../api'
 import './style.css'
 import ScrollableChat from './ScrollableChat'
 import { io } from 'socket.io-client'
+import TypingAnimation from '../animations/TypingAnimation'
+
+
 var socket, selectedChatCompare;
 
 
@@ -21,11 +24,16 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
   const [istyping, setIsTyping] = useState(false);
   const toast = useToast();
 
+  const options = {
+    strings: [],
+    typeSpeed: 50,
+  };
+
   const ENDPOINT = "http://127.0.0.1:8080/";
-  // socket = io(ENDPOINT)
 
 
-  const { selectedChat, setSelectedChat, user } = ChatState();
+
+  const { selectedChat, setSelectedChat, user,notification, setNotification } = ChatState();
 
 
 
@@ -64,6 +72,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
 
   const sendMessage = async (e) => {
     if (e.key === "Enter" && newMessage) {
+      socket.emit("stop typing", selectedChat._id);
       try {
         const config = {
           headers: {
@@ -125,8 +134,8 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
     socket = io(ENDPOINT);
     socket.emit("setup", user.user);
     socket.on("connected", () => setSocketConnected(true));
-    // socket.on("typing", () => setIsTyping(true));
-    // socket.on("stop typing", () => setIsTyping(false));
+    socket.on("typing", () => setIsTyping(true));
+    socket.on("stop typing", () => setIsTyping(false));
 
     // eslint-disable-next-line
   }, []);
@@ -138,20 +147,21 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
     // eslint-disable-next-line
   }, [selectedChat]);
 
-
+// console.log(notification)
   useEffect(() => {
     socket.on("message recieved", (newMessageRecieved) => {
-        if (
-          !selectedChatCompare || // if chat is not selected or doesn't match current chat
-          selectedChatCompare._id !== newMessageRecieved.chat._id
-        ) {
-          // if (!notification.includes(newMessageRecieved)) {
-          //   setNotification([newMessageRecieved, ...notification]);
-          //   setFetchAgain(!fetchAgain);
-          // }
-        } else {
-          setMessages([...messages, newMessageRecieved])
+      if (
+        !selectedChatCompare 
+        || // if chat is not selected or doesn't match current chat
+        selectedChatCompare._id !== newMessageRecieved.chat._id
+      ) {
+        if (!notification.includes(newMessageRecieved)) {
+          setNotification([newMessageRecieved, ...notification]);
+          setFetchAgain(!fetchAgain);
         }
+      } else {
+        setMessages([...messages, newMessageRecieved])
+      }
     });
   });
 
@@ -173,7 +183,7 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
           <IconButton
             display={{ base: "flex", md: "none" }}
             icon={<ArrowBackIcon />}
-          // onClick={() => setSelectedChat("")}
+            onClick={() => setSelectedChat("")}
           />
           {(!selectedChat.isGroupChat ? (
             <>
@@ -224,18 +234,13 @@ const SingleChat = ({ fetchAgain, setFetchAgain }) => {
             isRequired
             mt={3}
           >
-            {/* {istyping ? (
+            {istyping ? (
               <div>
-                <Lottie
-                  options={defaultOptions}
-                  // height={50}
-                  width={70}
-                  style={{ marginBottom: 15, marginLeft: 0 }}
-                />
+                 <TypingAnimation />
               </div>
             ) : (
               <></>
-            )} */}
+            )}
             <Input
               variant="filled"
               bg="#E0E0E0"
